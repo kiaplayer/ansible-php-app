@@ -40,7 +40,7 @@ deploy_nginx_root: '{{ deploy_home }}/web'
 deploy_nginx_access_log: '{{ deploy_log_dir }}/access.log'
 deploy_nginx_error_log: '{{ deploy_log_dir }}/error.log'
 deploy_php_fpm_socket: /var/run/php-fpm.app.sock
-deploy_git_repo: 'ssh://git@github.com:com:kiaplayer/ansible-php-app.git'
+deploy_git_repo: 'ssh://git@github.com:kiaplayer/ansible-php-app.git'
 deploy_git_branch: 'master'
 deploy_composer_version: 1.10.13
 deploy_composer_no_dev: no
