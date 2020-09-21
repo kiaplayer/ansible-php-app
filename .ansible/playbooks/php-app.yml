@@ -1,0 +1,186 @@
+---
+- name: PHP application playbook
+  hosts: all
+  become: yes
+
+  roles:
+    - cloudteam.init
+    - cloudteam.postgresql
+
+  tasks:
+
+    # Firewall setup
+
+    - name: Allow traffic for ssh, web and postgresql
+      ufw:
+        rule: allow
+        proto: tcp
+        port: '{{ item }}'
+      with_items:
+        - '22'
+        - '80'
+        - '443'
+        - '5432'
+
+    - name: Deny all other traffic
+      ufw:
+        state: enabled
+        policy: deny
+
+    # Add additional repositories
+
+    - name: Add GPG apt key for PHP
+      apt_key:
+        keyserver: keyserver.ubuntu.com
+        id: '{{ item }}'
+        state: present
+      loop:
+        - E5267A6C
+
+    - name: Add GPG apt key for  Nginx
+      apt_key:
+        url: '{{ item }}'
+        state: present
+      loop:
+        - http://nginx.org/keys/nginx_signing.key
+
+    - name: Add apt repositories (Nginx, PHP)
+      apt_repository:
+        repo: '{{ item }}'
+        state: present
+      loop:
+        - deb http://nginx.org/packages/ubuntu/ bionic stable
+        - ppa:ondrej/php
+
+    # Packages installation
+
+    - name: Install required packages
+      apt: name='{{ item }}' state=latest
+      loop:
+        - wget
+        - ntp
+        - ntpdate
+        - ufw
+        - git
+        - unzip
+        - curl
+        - memcached
+        - nginx
+        - php7.4-fpm
+        - php7.4-cli
+        - php7.4-pgsql
+        - php7.4-gd
+        - php7.4-mbstring
+        - php7.4-curl
+        - php7.4-intl
+        - php7.4-zip
+        - php7.4-xml
+        - php7.4-json
+        - php7.4-xdebug
+        - php-memcached
+        - imagemagick
+
+    # Application deployment
+
+    - name: Create directories
+      file:
+        path: '{{ item }}'
+        state: directory
+        owner: '{{ deploy_user }}'
+        group: '{{ deploy_user_group }}'
+        mode: '0750'
+      loop:
+        - '{{ deploy_app_dir }}'
+        - '{{ deploy_log_dir }}'
+        - '{{ deploy_home }}/.composer'
+
+    - name: Add application vhost for Nginx
+      template:
+        src: files/nginx-vhost.conf.j2
+        dest: /etc/nginx/sites-available/app
+        owner: '{{ deploy_user }}'
+        group: '{{ deploy_user_group }}'
+        mode: '0600'
+      notify: Reload nginx
+
+    - name: Enable application vhost
+      file:
+        src: /etc/nginx/sites-available/app
+        dest: /etc/nginx/sites-enabled/app
+        state: link
+      notify: Reload nginx
+
+    - name: Disable default vhost
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+      notify: Reload nginx
+
+    - name: Add application pool for php-fpm
+      template:
+        src: files/php-fpm-pool.conf.j2
+        dest: /etc/php/7.4/fpm/pool.d/app.conf
+        mode: '0644'
+      notify: Reload php-fpm
+
+    - name: Download and install Composer
+      shell: wget -O - https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/bin ----version={{ deploy_composer_version }}
+      args:
+        warn: false
+        creates: '/usr/bin/composer'
+
+    - name: Add Github access token to increase API limits
+      copy:
+        content: '{"github-oauth":{"github.com": "{{ deploy_composer_github_auth_token}}"}}'
+        dest: '{{ deploy_home }}/.composer/auth.json'
+        owner: '{{ deploy_user }}'
+        group: '{{ deploy_user_group }}'
+        mode: '0600'
+
+    - name: Install global requirements
+      become_user: '{{ deploy_user }}'
+      composer:
+        command: require
+        global_command: yes
+        arguments: "{{ deploy_composer_global_requirements | join(' ') }}"
+
+    - name: Clone application source code
+      become_user: '{{ deploy_user }}'
+      git:
+        repo: '{{ deploy_git_repo }}'
+        dest: '{{ deploy_app_dir }}'
+        version: '{{ deploy_git_branch }}'
+
+    - name: Copy application configuration files
+      become_user: '{{ deploy_user }}'
+      copy: src={{ item.src }} dest={{ item.dest }} mode=0750
+      loop: '{{ deploy_app_configs }}'
+
+    - name: Install application requirements
+      become_user: '{{ deploy_user }}'
+      composer:
+        command: install
+        no_dev: '{{ deploy_composer_no_dev }}'
+        working_dir: '{{ deploy_app_dir }}'
+
+    - name: Migrate database
+      become_user: '{{ deploy_user }}'
+      command:
+        cmd: 'php yii migrate --interactive=0'
+        chdir: '{{ deploy_app_dir }}'
+      register: migrate_result
+      changed_when: "'No new migrations found' not in migrate_result.stdout"
+
+  handlers:
+
+    - name: Restart ssh
+      service: name=ssh state=restarted
+
+    - name: Restart cron
+      service: name=cron state=restarted
+
+    - name: Reload nginx
+      service: name=nginx state=reloaded
+
+    - name: Reload php-fpm
+      service: name=php7.4-fpm state=reloaded
