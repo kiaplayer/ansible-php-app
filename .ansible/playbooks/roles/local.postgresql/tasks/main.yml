@@ -1,0 +1,125 @@
+---
+
+- name: Add GPG apt key
+  become: yes
+  apt_key:
+    url: '{{ postgresql_apt_key_url }}'
+    state: present
+
+- name: Add apt repository
+  become: yes
+  apt_repository:
+    repo: '{{ postgresql_apt_repository }}'
+    state: present
+
+- name: Install required packages (Postgres {{ postgresql_version }})
+  become: yes
+  apt: name='{{ item }}-{{ postgresql_version }}' state=latest
+  loop:
+    - postgresql
+    - postgresql-client
+    - postgresql-contrib
+
+- name: Install required packages
+  become: yes
+  apt: name='{{ item }}' state=latest
+  loop:
+    - acl
+    - libpq-dev
+    - python3-pip
+
+- name: Install required Python packages
+  become: yes
+  pip: name='{{ item }}' state=latest
+  loop:
+    - psycopg2 # PostgreSQL database adapter
+
+- name: Check that the postgresql.base.conf exists
+  stat:
+    path: '{{ postgresql_confdir }}/postgresql.base.conf'
+  register: base_conf_result
+
+- set_fact:
+    postgresql_config_file_path: "{{ postgresql_confdir }}/{{ base_conf_result.stat.exists | ternary('postgresql.base.conf', 'postgresql.conf') }}"
+
+- name: Set config options in {{ postgresql_config_file_path }}
+  lineinfile:
+    dest: '{{ postgresql_config_file_path }}'
+    regexp: '^{{ item.key }} '
+    line: "{{ item.key }} = {{ item.value }}"
+    state: present
+  loop: '{{ postgresql_config|dict2items }}'
+  notify: Restart postgresql service
+
+- name: Set access rules to PostgreSql
+  postgresql_pg_hba:
+    dest: '{{ postgresql_confdir }}/pg_hba.conf'
+    contype: '{{ item.type }}'
+    users: '{{ item.user }}'
+    source: '{{ item.address | default(None, true) }}'
+    databases: '{{ item.database }}'
+    method: '{{ item.method }}'
+    state: present
+  loop: '{{ postgresql_hba_records | default([]) }}'
+  notify: Reload postgresql service
+
+- name: Create archive folders
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: postgres
+    group: postgres
+    mode: '0700'
+  loop: '{{ postgresql_archive_folders }}'
+
+- name: Check if database is in recovery mode
+  command: "psql -c 'SELECT pg_is_in_recovery();' -t -A -X"
+  become: yes
+  become_user: postgres
+  register: mode_result
+  changed_when: False
+
+- set_fact:
+    postgresql_is_master: "{{ mode_result.stdout == 'f' }}"
+
+- name: Tasks for master only
+  block:
+
+    - name: Set postgres user password
+      become: yes
+      become_user: postgres
+      postgresql_user:
+        name: 'postgres'
+        password: '{{ postgresql_password }}'
+
+    - name: Create DB-user for application
+      become_user: postgres
+      postgresql_user:
+        db: 'postgres'
+        name: '{{ item.owner_name }}'
+        password: '{{ item.owner_password }}'
+      loop: '{{ postgresql_databases | default([]) }}'
+
+    - name: Create database for application
+      become: yes
+      become_user: postgres
+      postgresql_db:
+        name: '{{ item.name }}'
+        owner: '{{ item.owner_name }}'
+        encoding: '{{ item.encoding }}'
+        lc_collate: '{{ item.lc_collate }}'
+        lc_ctype: '{{ item.lc_ctype }}'
+        template: template0
+      loop: '{{ postgresql_databases | default([]) }}'
+
+    - name: Install extensions
+      become: yes
+      become_user: postgres
+      postgresql_ext:
+        name: '{{ item.name }}'
+        db: '{{ item.database }}'
+        cascade: '{{ item.cascade }}'
+        state: present
+      loop: '{{ postgresql_extensions }}'
+
+  when: postgresql_is_master|bool

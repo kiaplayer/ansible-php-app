@@ -1,0 +1,21 @@
+apps:
+  - name: app
+    user: deploy
+    user_group: www-data
+    path: /home/deploy/app
+    extra_directories:
+      - /home/deploy/log
+      - /home/deploy/.composer
+    composer_github_auth_token: ''
+    composer_global_requirements: []
+    composer_no_dev: false
+    git_repo: ''
+    git_branch: master
+    config_files: []
+#      - src: 'files/app_config.php'
+#        dest: '/home/deploy/app/config/local.php'
+    extra_commands: []
+#      - command: 'php yii migrate --interactive=0'
+#        chdir: /home/deploy/app
+#        register: migrate_result
+#        changed_when: "'No new migrations found' not in migrate_result.stdout"

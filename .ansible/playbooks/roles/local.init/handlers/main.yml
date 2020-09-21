@@ -1,0 +1,6 @@
+---
+- name: Restart cron service
+  service: name=cron state=restarted
+
+- name: Restart ssh service
+  service: name=ssh state=restarted

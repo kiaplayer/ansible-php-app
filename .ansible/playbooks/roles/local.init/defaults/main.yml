@@ -1,0 +1,30 @@
+init_locale: en_US.UTF-8
+init_timezone: Europe/Moscow
+
+init_ssh_allowed_groups:
+  - sshers
+init_ssh_config:
+  - { name: 'PasswordAuthentication', value: 'no' }
+  - { name: 'PermitRootLogin', value: 'no' }
+
+init_packages:
+  - git
+
+init_open_ports:
+  - '22'
+  - '80'
+  - '443'
+  - '5432'
+
+init_users: []
+#  - name: deploy
+#    group: sshers
+#    groups: []
+#    home: '/home/deploy'
+#    is_sudoer: yes
+#    known_hosts:
+#      - github.com
+#      - git.cloud-team.ru
+#      - git.vseinstrumenti.net
+#    private_key:
+#    authorized_keys: []

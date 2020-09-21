@@ -1,0 +1,14 @@
+[{{ php_fpm_pool.name }}]
+listen = {{ php_fpm_pool.socket }}
+user = {{ php_fpm_pool.user }}
+group = {{ php_fpm_pool.user_group }}
+listen.owner = www-data
+listen.group = www-data
+listen.mode = '0600'
+pm = dynamic
+pm.max_children = 100
+pm.min_spare_servers = 3
+pm.max_spare_servers = 10
+env[LANG] = {{ php_fpm_pool.locale }}
+env[LANGUAGE] = {{ php_fpm_pool.locale }}
+env[LC_ALL] = {{ php_fpm_pool.locale }}

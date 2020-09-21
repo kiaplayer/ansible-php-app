@@ -1,0 +1,87 @@
+---
+
+- name: Update APT cache if the last one is more than 3600 seconds ago
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Set timezone to "{{ init_timezone }}"
+  timezone:
+    name: '{{ init_timezone }}'
+  notify: Restart cron service
+
+- name: Ensure a locale "{{ init_locale }}" exists
+  locale_gen:
+    name: '{{ init_locale }}'
+    state: present
+
+# NTPD setup
+
+- name: Install NTPD packages
+  apt: name='{{ item }}' state=latest
+  loop:
+    - ntp
+    - ntpdate
+
+- name: Enable NTPD serive
+  service: name=ntp state=started enabled=yes
+
+# SSH setup
+
+- name: Add sshers groups
+  group: name='{{ item }}' state=present
+  loop: '{{ init_ssh_allowed_groups }}'
+
+- name: Allow SSH access for sshers groups only
+  lineinfile: dest=/etc/ssh/sshd_config
+    regexp='^AllowGroups'
+    line='AllowGroups {{ init_ssh_allowed_groups | join(' ') }}'
+    state=present
+  notify: Restart ssh service
+
+- name: Set ssh config options
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: '^{{ item.name }}'
+    line: "{{ item.name }} {{ item.value }}"
+    state: present
+  loop: '{{ init_ssh_config }}'
+  notify: Restart ssh service
+
+# Fix for become_user
+# See:
+#   - https://github.com/geerlingguy/ansible-for-devops/pull/238
+#   - https://github.com/georchestra/ansible/issues/55
+
+- name: Install acl package
+  apt: name='acl' state=latest
+
+# Add users
+
+- include_tasks: add_user.yml
+  loop: '{{ init_users }}'
+  loop_control:
+    loop_var: init_user
+
+# Packages installation
+
+- name: Install required packages
+  apt: name='{{ item }}' state=latest
+  loop: '{{ init_packages }}'
+
+# Firewall setup
+
+- name: Install Firewall package
+  apt: name='ufw' state=latest
+
+- name: Allow traffic for specified ports
+  ufw:
+    rule: allow
+    proto: tcp
+    port: '{{ item }}'
+  loop: '{{ init_open_ports }}'
+
+- name: Deny all other traffic
+  ufw:
+    state: enabled
+    policy: deny

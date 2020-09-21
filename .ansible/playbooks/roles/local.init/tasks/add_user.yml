@@ -1,0 +1,53 @@
+- name: Add user group "{{ init_user.group }}"
+  group:
+    name: '{{ init_user.group }}'
+
+- name: Add user "{{ init_user.name }}"
+  user:
+    name: '{{ init_user.name }}'
+    group: '{{ init_user.group }}'
+    groups: '{{ init_user.groups | default([], true) }}'
+    home: '{{ init_user.home }}'
+    shell: /bin/bash
+
+- name: Add user "{{ init_user.name }}" to sudoers
+  lineinfile: dest=/etc/sudoers
+    regexp='{{ init_user.name }} ALL'
+    line='{{ init_user.name }} ALL=(ALL) NOPASSWD:ALL'
+    state=present
+  when: init_user.is_sudoer
+
+- name: Create ssh directory for user "{{ init_user.name }}"
+  file:
+    path: '{{ init_user.home }}/.ssh'
+    state: directory
+    owner: '{{ init_user.name }}'
+    group: '{{ init_user.group }}'
+    mode: '0700'
+
+- name: Set up authorized keys for user "{{ init_user.name }}"
+  authorized_key:
+    user: '{{ init_user.name }}'
+    state: present
+    key: "{{ lookup('file', item) }}"
+  loop: '{{ init_user.authorized_keys }}'
+  when: init_user.authorized_keys | default([], true) | length > 0
+
+- name: Set up private key for user "{{ init_user.name }}"
+  copy:
+    src: '{{ init_user.private_key }}'
+    dest: '{{ init_user.home }}/.ssh/id_rsa'
+    owner: '{{ init_user.name }}'
+    group: '{{ init_user.group }}'
+    mode: '0600'
+  when: init_user.private_key | default(false, true) != false
+
+- name: Set known hosts for user "{{ init_user.name }}"
+  become_user: '{{ init_user.name }}'
+  become: yes
+  known_hosts:
+    name: '{{ item }}'
+    key: "{{ lookup('pipe', 'ssh-keyscan -t rsa ' + item) }}"
+    state: present
+  loop: '{{ init_user.known_hosts }}'
+  when: init_user.known_hosts | default([], true) | length > 0

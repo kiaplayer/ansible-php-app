@@ -1,6 +1,5 @@
 init_locale: en_US.UTF-8
 init_timezone: Europe/Moscow
-
 init_ssh_allowed_groups:
   - sshers
   - vagrant
@@ -20,6 +19,11 @@ init_users:
     private_key: files/ssh/deploy_private_key
     authorized_keys:
       - files/ssh/deploy_public_key.pub
+init_open_ports:
+  - '22'
+  - '80'
+  - '443'
+  - '5432'
 
 postgresql_version: 12
 postgresql_password: secret
@@ -31,20 +35,63 @@ postgresql_databases:
     lc_collate: en_US.UTF-8
     lc_ctype: en_US.UTF-8
 
-deploy_user: deploy
-deploy_user_group: www-data
-deploy_home: '/home/{{ deploy_user }}'
-deploy_app_dir: '{{ deploy_home }}/www'
-deploy_log_dir: '{{ deploy_home }}/log'
-deploy_nginx_root: '{{ deploy_home }}/web'
-deploy_nginx_access_log: '{{ deploy_log_dir }}/access.log'
-deploy_nginx_error_log: '{{ deploy_log_dir }}/error.log'
-deploy_php_fpm_socket: /var/run/php-fpm.app.sock
-deploy_git_repo: 'ssh://git@github.com/kiaplayer/ansible-php-app.git'
-deploy_git_branch: 'master'
-deploy_composer_version: 1.10.13
-deploy_composer_no_dev: no
-deploy_composer_github_auth_token: 'dbd6c5966b80f1379ad6c341fef220b8206ae985'
-deploy_composer_global_requirements: []
-deploy_app_configs:
-  - { src: 'files/app_config.php', dest: '{{ deploy_app_dir }}/config/local.php' }
+php_packages:
+  - unzip
+  - curl
+  - wget
+  - php7.4-fpm
+  - php7.4-pgsql
+  - php7.4-gd
+  - php7.4-mbstring
+  - php7.4-curl
+  - php7.4-intl
+  - php7.4-zip
+  - php7.4-xml
+  - php7.4-json
+  - php7.4-opcache
+  - php7.4-xdebug
+  - php-memcached
+  - memcached
+  - imagemagick
+php_fpm_service: php7.4-fpm
+php_composer_version: 1.10.13
+php_fpm_pools_path: /etc/php/7.4/fpm/pool.d
+php_fpm_pools:
+  - name: app
+    socket: /var/run/php-fpm.app.sock
+    user: deploy
+    user_group: www-data
+    locale: en_US.UTF-8
+
+nginx_vhosts_path: /etc/nginx/sites-enabled
+nginx_vhosts:
+  - name: app
+    server_name: '_'
+    root: /home/deploy/app/web
+    index_file: index.php
+    access_log: /home/deploy/log/app-access.log
+    error_log: /home/deploy/log/app-error.log
+    fastcgi_index: index.php
+    fastcgi_pass: 'unix:/var/run/php-fpm.app.sock'
+
+apps:
+  - name: app
+    user: deploy
+    user_group: www-data
+    path: /home/deploy/app
+    extra_directories:
+      - /home/deploy/log
+      - /home/deploy/.composer
+    composer_github_auth_token: 'dbd6c5966b80f1379ad6c341fef220b8206ae985'
+    composer_global_requirements: []
+    composer_no_dev: no
+    git_repo: 'ssh://git@github.com/kiaplayer/ansible-php-app.git'
+    git_branch: master
+    config_files:
+      - src: 'files/app_config.php'
+        dest: '/home/deploy/app/config/local.php'
+    extra_commands: []
+      - command: 'php yii migrate --interactive=0'
+        chdir: /home/deploy/app
+        register: migrate_result
+        changed_when: "'No new migrations found' not in migrate_result.stdout"

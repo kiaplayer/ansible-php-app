@@ -1,0 +1,14 @@
+nginx_packages:
+  - nginx
+
+nginx_vhosts_path: /etc/nginx/sites-enabled
+
+nginx_vhosts: []
+#  - name: app
+#    server_name: '_'
+#    root: /home/deploy/app/web
+#    index_file: index.php
+#    access_log: /home/deploy/log/app-access.log
+#    error_log: /home/deploy/log/app-error.log
+#    fastcgi_index: index.php
+#    fastcgi_pass: 'unix:/var/run/php-fpm.app.sock'

@@ -4,7 +4,7 @@
 
 [Install Ansible for your platform](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
 
-## Install Ansible roles
+## Install external Ansible roles (if needed)
 ```
 $ cd .ansible
 $ ansible-galaxy install --roles-path playbooks/roles -r requirements.yml --force
@@ -24,15 +24,15 @@ $ ansible-galaxy install --roles-path playbooks/roles -r requirements.yml --forc
         └── inventory.yml
 ```
 
-## Execute Ansible playbooks for necessary inventory
+## Execute Ansible playbook for necessary inventory
 ```
 $ cd .ansible
-$ ansible-playbook -i inventories/<inventory_folder>/inventory.yml --user <username> --become playbooks/php-app.yml
+$ ansible-playbook -i inventories/<inventory_folder>/inventory.yml --user <username> --become playbooks/playbook.yml
 ```
 
 ### Example for Vagrant environment
 ```
 $ vagrant up
 $ cd .ansible
-$ ansible-playbook -i inventories/vagrant/inventory.yml --become playbooks/php-app.yml
+$ ansible-playbook -i inventories/vagrant/inventory.yml --become playbooks/playbook.yml
 ```

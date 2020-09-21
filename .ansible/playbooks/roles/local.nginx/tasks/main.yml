@@ -1,0 +1,36 @@
+---
+
+- name: Add GPG apt key for Nginx
+  apt_key:
+    url: '{{ item }}'
+    state: present
+  loop:
+    - http://nginx.org/keys/nginx_signing.key
+
+- name: Add apt repository for Nginx
+  apt_repository:
+    repo: 'deb http://nginx.org/packages/ubuntu/ bionic stable'
+    state: present
+
+- name: Install required packages for Nginx
+  become: yes
+  apt: name='{{ item }}' state=latest
+  loop: '{{ nginx_packages }}'
+
+- name: Disable default vhost
+  file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Reload nginx service
+
+- name: Add vhost for Nginx
+  template:
+    src: nginx-vhost.conf.j2
+    dest: '{{ nginx_vhosts_path }}/{{ nginx_vhost.name }}.conf'
+    owner: www-data
+    group: www-data
+    mode: '0600'
+  loop: '{{ nginx_vhosts }}'
+  loop_control:
+    loop_var: nginx_vhost
+  notify: Reload nginx service

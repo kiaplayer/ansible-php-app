@@ -1,0 +1,33 @@
+---
+
+- name: Add GPG apt key for PHP
+  apt_key:
+    keyserver: keyserver.ubuntu.com
+    id: E5267A6C
+    state: present
+
+- name: Add apt repository for PHP
+  apt_repository:
+    repo: ppa:ondrej/php
+    state: present
+
+- name: Install required packages for PHP
+  become: yes
+  apt: name='{{ item }}' state=latest
+  loop: '{{ php_packages }}'
+
+- name: Add FPM pools
+  template:
+    src: php-fpm-pool.conf.j2
+    dest: '{{ php_fpm_pools_path }}/{{ php_fpm_pool.name }}.conf'
+    mode: '0644'
+  loop: '{{ php_fpm_pools }}'
+  loop_control:
+    loop_var: php_fpm_pool
+  notify: Reload php-fpm service
+
+- name: Download and install Composer
+  shell: wget -O - https://getcomposer.org/installer | php -- --filename=composer --install-dir=/usr/bin ----version={{ php_composer_version }}
+  args:
+    warn: false
+    creates: /usr/bin/composer

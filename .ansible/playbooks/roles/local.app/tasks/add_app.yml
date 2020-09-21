@@ -1,0 +1,61 @@
+---
+
+- name: Create app directory "{{ app.path }}"
+  file:
+    path: '{{ app.path }}'
+    state: directory
+    owner: '{{ app.user }}'
+    group: '{{ app.user_group }}'
+    mode: '0750'
+
+- name: Create extra directory "{{ item }}"
+  file:
+    path: '{{ item }}'
+    state: directory
+    owner: '{{ app.user }}'
+    group: '{{ app.user_group }}'
+    mode: '0750'
+  loop: '{{ app.extra_directories }}'
+
+- name: Add Github access token to increase API limits
+  copy:
+    content: '{"github-oauth":{"github.com": "{{ app.composer_github_auth_token }}"}}'
+    dest: '/home/{{ app.user }}/.composer/auth.json'
+    owner: '{{ app.user }}'
+    group: '{{ app.user_group }}'
+    mode: '0600'
+
+- name: Install global requirements
+  become_user: '{{ app.user }}'
+  composer:
+    command: require
+    global_command: yes
+    arguments: "{{ app.composer_global_requirements | join(' ') }}"
+
+- name: Clone application source code from "{{ app.git_repo }}"
+  become_user: '{{ app.user }}'
+  git:
+    repo: '{{ app.git_repo }}'
+    dest: '{{ app.path }}'
+    version: '{{ app.git_branch }}'
+
+- name: Copy application configuration file "{{ item.dest }}"
+  become_user: '{{ app.user }}'
+  copy: src={{ item.src }} dest={{ item.dest }} mode=0750
+  loop: '{{ app.config_files }}'
+
+- name: Install application requirements
+  become_user: '{{ app.user }}'
+  composer:
+    command: install
+    no_dev: '{{ app.composer_no_dev }}'
+    working_dir: '{{ app.path }}'
+
+- name: Execute extra command "{{ item.command }}"
+  become_user: '{{ app.user }}'
+  command:
+    cmd: '{{ item.command }}'
+    chdir: '{{ item.chdir }}'
+  register: '{{ item.register }}'
+  changed_when: '{{ item.changed_when }}'
+  loop: '{{ app.extra_commands }}'

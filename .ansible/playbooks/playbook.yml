@@ -1,0 +1,11 @@
+---
+- name: PHP application playbook
+  hosts: all
+  become: yes
+
+  roles:
+    - local.init
+    - local.postgresql
+    - local.php
+    - local.app
+    - local.nginx # It's after "local.app" because Nginx needs application paths to start vhost
