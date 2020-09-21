@@ -51,11 +51,7 @@
     no_dev: '{{ app.composer_no_dev }}'
     working_dir: '{{ app.path }}'
 
-- name: Execute extra command "{{ item.command }}"
-  become_user: '{{ app.user }}'
-  command:
-    cmd: '{{ item.command }}'
-    chdir: '{{ item.chdir }}'
-  register: '{{ item.register }}'
-  changed_when: '{{ item.changed_when }}'
+- include_tasks: execute_and_output.yml
   loop: '{{ app.extra_commands }}'
+  loop_control:
+    loop_var: command

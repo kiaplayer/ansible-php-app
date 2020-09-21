@@ -1,0 +1,13 @@
+---
+
+- name: Execute extra command "{{ command.command }}"
+  become_user: '{{ app.user }}'
+  command:
+    cmd: '{{ command.command }}'
+    chdir: '{{ command.chdir }}'
+  register: command_result
+  changed_when: false
+
+- name: Output for extra command "{{ command.command }}"
+  debug:
+    var: command_result.stdout

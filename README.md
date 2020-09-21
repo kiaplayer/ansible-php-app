@@ -7,7 +7,7 @@
 ## Install external Ansible roles (if needed)
 ```
 $ cd .ansible
-$ ansible-galaxy install --roles-path playbooks/roles -r requirements.yml --force
+$ ansible-galaxy install -r requirements.yml --force
 ```
 
 ## Add new inventory (if needed) or use inventory "vagrant"

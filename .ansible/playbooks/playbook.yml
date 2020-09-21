@@ -8,4 +8,4 @@
     - local.postgresql
     - local.php
     - local.app
-    - local.nginx # It's after "local.app" because Nginx needs application paths to start vhost
+    - local.nginx # Nginx needs application paths to add vhost

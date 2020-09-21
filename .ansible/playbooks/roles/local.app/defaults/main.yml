@@ -17,5 +17,3 @@ apps:
     extra_commands: []
 #      - command: 'php yii migrate --interactive=0'
 #        chdir: /home/deploy/app
-#        register: migrate_result
-#        changed_when: "'No new migrations found' not in migrate_result.stdout"
