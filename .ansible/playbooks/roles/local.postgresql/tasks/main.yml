@@ -88,12 +88,14 @@
     - name: Set postgres user password
       become: yes
       become_user: postgres
+      no_log: yes
       postgresql_user:
         name: 'postgres'
         password: '{{ postgresql_password }}'
 
     - name: Create DB-user for application
       become_user: postgres
+      no_log: yes
       postgresql_user:
         db: 'postgres'
         name: '{{ item.owner_name }}'
