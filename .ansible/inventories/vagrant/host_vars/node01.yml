@@ -15,9 +15,9 @@ init_users:
     is_sudoer: yes
     known_hosts:
       - github.com
-    private_key: files/ssh/deploy_private_key
+    private_key: ../inventories/vagrant/files/ssh/deploy_private_key
     authorized_keys:
-      - files/ssh/deploy_public_key.pub
+      - ../inventories/vagrant/files/ssh/deploy_public_key.pub
 init_open_ports:
   - '22'
   - '80'
@@ -33,6 +33,11 @@ postgresql_databases:
     encoding: UTF-8
     lc_collate: en_US.UTF-8
     lc_ctype: en_US.UTF-8
+
+memcached_config:
+  - '-l 127.0.0.1' # Bind to localhost only
+  - '-U 0'         # Disable UDP protocol
+  - '-m 64'        # Memory limit
 
 php_packages:
   - unzip
@@ -50,13 +55,13 @@ php_packages:
   - php7.4-opcache
   - php7.4-xdebug
   - php-memcached
-  - memcached
   - imagemagick
 php_fpm_service: php7.4-fpm
 php_composer_version: 1.10.13
 php_fpm_pools_path: /etc/php/7.4/fpm/pool.d
 php_fpm_pools:
   - name: app
+    template: ../inventories/vagrant/files/php/php-fpm-pool.conf.j2
     socket: /var/run/php-fpm.app.sock
     user: deploy
     user_group: www-data
@@ -65,6 +70,7 @@ php_fpm_pools:
 nginx_vhosts_path: /etc/nginx/sites-enabled
 nginx_vhosts:
   - name: app
+    template: ../inventories/vagrant/files/nginx/nginx-vhost.conf.j2
     server_name: '_'
     root: /home/deploy/app/web
     index_file: index.php
@@ -87,8 +93,8 @@ apps:
     git_repo: 'ssh://git@github.com/kiaplayer/ansible-php-app.git'
     git_branch: master
     config_files:
-      - src: 'files/app_config.php'
-        dest: '/home/deploy/app/config/local.php'
+      - src: ../inventories/vagrant/files/app/local.php
+        dest: /home/deploy/app/config/local.php
     extra_commands:
-      - command: 'php yii migrate --interactive=0'
+      - command: php yii migrate --interactive=0
         chdir: /home/deploy/app

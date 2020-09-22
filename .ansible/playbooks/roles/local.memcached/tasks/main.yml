@@ -1,0 +1,15 @@
+---
+
+- name: Install required packages for Memcached
+  become: yes
+  apt: name='{{ item }}' state=latest
+  loop: '{{ memcached_packages }}'
+
+- name: Set config options in "{{ memcached_config_path }}"
+  lineinfile:
+    dest: '{{ memcached_config_path }}'
+    regexp: '^{{ item }}'
+    line: '{{ item }}'
+    state: present
+  loop: '{{ memcached_config }}'
+  notify: Restart memcached service

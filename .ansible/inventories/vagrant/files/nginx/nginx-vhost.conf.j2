@@ -1,0 +1,33 @@
+server {
+    charset utf-8;
+    server_tokens off;
+
+    listen 80 default_server;
+    server_name {{ nginx_vhost.server_name }};
+
+    root {{ nginx_vhost.root }};
+    index {{ nginx_vhost.index_file }};
+
+    access_log {{ nginx_vhost.access_log }};
+    error_log {{ nginx_vhost.error_log }};
+
+    location / {
+        try_files $uri $uri/ /{{ nginx_vhost.fastcgi_index }}?$args;
+    }
+
+    location ~ \.php$ {
+        fastcgi_index {{ nginx_vhost.fastcgi_index }};
+        set $fsn /{{ nginx_vhost.fastcgi_index }};
+        if (-f $document_root$fastcgi_script_name) {
+            set $fsn $fastcgi_script_name;
+        }
+        fastcgi_read_timeout 3600s;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fsn;
+        fastcgi_pass {{ nginx_vhost.fastcgi_pass }};
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}

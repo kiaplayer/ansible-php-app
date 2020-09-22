@@ -14,7 +14,6 @@ php_packages:
   - php7.4-opcache
   - php7.4-xdebug
   - php-memcached
-  - memcached
   - imagemagick
 
 php_fpm_service: php7.4-fpm
@@ -25,7 +24,7 @@ php_fpm_pools_path: /etc/php/7.4/fpm/pool.d
 
 php_fpm_pools: []
 #  - name: app
+#    template: php-fpm-pool.conf.j2
 #    socket: /var/run/php-fpm.app.sock
 #    user: deploy
 #    user_group: www-data
-#    locale: en_US.UTF-8

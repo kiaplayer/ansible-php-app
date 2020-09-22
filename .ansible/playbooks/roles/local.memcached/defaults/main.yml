@@ -1,0 +1,11 @@
+memcached_packages:
+  - memcached
+
+memcached_service: memcached
+
+memcached_config_path: /etc/memcached.conf
+
+memcached_config:
+  - '-l 127.0.0.1' # Bind to localhost only
+  - '-U 0'         # Disable UDP protocol
+  - '-m 64'        # Memory limit

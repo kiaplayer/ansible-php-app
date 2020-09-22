@@ -1,0 +1,3 @@
+---
+- name: Restart memcached service
+  service: name='{{ memcached_service }}' state=restarted

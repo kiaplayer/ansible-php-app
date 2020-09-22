@@ -5,6 +5,7 @@ nginx_vhosts_path: /etc/nginx/sites-enabled
 
 nginx_vhosts: []
 #  - name: app
+#    template: nginx-vhost.conf.j2
 #    server_name: '_'
 #    root: /home/deploy/app/web
 #    index_file: index.php

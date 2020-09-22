@@ -25,7 +25,7 @@
 
 - name: Add vhost for Nginx
   template:
-    src: nginx-vhost.conf.j2
+    src: '{{ nginx_vhost.template | default("nginx-vhost.conf.j2", true) }}'
     dest: '{{ nginx_vhosts_path }}/{{ nginx_vhost.name }}.conf'
     owner: www-data
     group: www-data

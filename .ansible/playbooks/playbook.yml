@@ -6,6 +6,7 @@
   roles:
     - local.init
     - local.postgresql
+    - local.memcached
     - local.php
     - local.app
     - local.nginx # Nginx needs application paths to add vhost
