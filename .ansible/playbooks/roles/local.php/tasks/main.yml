@@ -16,6 +16,18 @@
   apt: name='{{ item }}' state=latest
   loop: '{{ php_packages }}'
 
+- name: Install custom configuration file
+  template:
+    src: '{{ php_config_template }}'
+    dest: '{{ php_config_target_file }}'
+    mode: '0644'
+  notify: Reload php-fpm service
+
+- name: Apply custom configuration file
+  command:
+    cmd: '{{ php_config_enable_command }}'
+  changed_when: false
+
 - name: Add FPM pools
   template:
     src: '{{ php_fpm_pool.template | default("php-fpm-pool.conf.j2", true) }}'

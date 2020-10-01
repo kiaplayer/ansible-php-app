@@ -16,6 +16,10 @@ php_packages:
   - php-memcached
   - imagemagick
 
+php_config_template: php.dev.ini.j2
+php_config_target_file: /etc/php/7.4/mods-available/custom.ini
+php_config_enable_command: phpenmod custom
+
 php_fpm_service: php7.4-fpm
 
 php_composer_version: 1.10.13
