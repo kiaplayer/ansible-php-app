@@ -21,12 +21,16 @@
     src: '{{ php_config_template }}'
     dest: '{{ php_config_target_file }}'
     mode: '0644'
-  notify: Reload php-fpm service
+  register: php_custom_config
 
 - name: Apply custom configuration file
   command:
     cmd: '{{ php_config_enable_command }}'
   changed_when: false
+
+- name: Reload php-fpm service if custom configuration file was changed
+  service: name='{{ php_fpm_service }}' state=reloaded
+  when: php_custom_config.changed
 
 - name: Add FPM pools
   template:
